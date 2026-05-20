@@ -541,21 +541,37 @@ async function handleSession(
 
       let sent = 0;
       let failed = 0;
+      const trySend = async (uid: number) => {
+        if (msg.photo) {
+          const fileId = msg.photo[msg.photo.length - 1].file_id;
+          try {
+            await bot.sendPhoto(uid, fileId, { caption: msg.caption || "" });
+          } catch {
+            await bot.sendPhoto(uid, fileId);
+          }
+        } else if (msg.video) {
+          try {
+            await bot.sendVideo(uid, msg.video.file_id, { caption: msg.caption || "" });
+          } catch {
+            await bot.sendVideo(uid, msg.video.file_id);
+          }
+        } else if (msg.document) {
+          try {
+            await bot.sendDocument(uid, msg.document.file_id, { caption: msg.caption || "" });
+          } catch {
+            await bot.sendDocument(uid, msg.document.file_id);
+          }
+        } else if (text) {
+          await bot.sendMessage(uid, text);
+        }
+      };
       for (const uid of userIds) {
         try {
-          if (msg.photo) {
-            const fileId = msg.photo[msg.photo.length - 1].file_id;
-            await bot.sendPhoto(uid, fileId, { caption: msg.caption || "", parse_mode: "HTML" });
-          } else if (msg.video) {
-            await bot.sendVideo(uid, msg.video.file_id, { caption: msg.caption || "", parse_mode: "HTML" });
-          } else if (msg.document) {
-            await bot.sendDocument(uid, msg.document.file_id, { caption: msg.caption || "", parse_mode: "HTML" });
-          } else if (text) {
-            await bot.sendMessage(uid, text, { parse_mode: "HTML" });
-          }
+          await trySend(uid);
           sent++;
-        } catch {
+        } catch (err) {
           failed++;
+          logger.warn({ uid, err: String(err) }, "Broadcast send failed");
         }
         await new Promise((r) => setTimeout(r, 50));
       }
