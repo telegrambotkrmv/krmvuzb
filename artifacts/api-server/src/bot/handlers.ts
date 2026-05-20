@@ -621,7 +621,15 @@ async function handleSession(
 
     case "admin_add_channel": {
       if (!isAdmin(userId)) return;
-      const username = text.startsWith("@") ? text.slice(1) : text;
+      let username = text.trim();
+      username = username.replace(/^https?:\/\/(t\.me|telegram\.me)\//i, "");
+      username = username.replace(/^@/, "");
+      username = username.replace(/\/.*$/, "");
+      username = username.replace(/[?#].*$/, "");
+      if (!username || !/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+        await bot.sendMessage(chatId, "❌ Noto'g'ri kanal nomi. Masalan: @kanalnomi yoki kanalnomi");
+        return;
+      }
       const channel: Channel = {
         id: uuidv4(),
         username,
